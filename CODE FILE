@@ -1,0 +1,161 @@
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+class Transaction {
+public:
+    string type;
+    double amount;
+    string timestamp;
+    Transaction(const string& t, double a, const string& ts)
+        : type(t), amount(a), timestamp(ts) {}
+};
+class Account {
+private:
+    string accountNumber;
+    string password;
+    double balance;
+    vector<Transaction> transactions;
+public:
+    Account(const string& accNum, const string& pwd) 
+        : accountNumber(accNum), password(pwd), balance(0.0) {}
+    bool verifyPassword(const string& pwd) const {
+        return password == pwd;
+    }
+    void deposit(double amount) {
+   balance += amount;
+        transactions.emplace_back("Deposit", amount, "Timestamp");
+    }
+    bool withdraw(double amount) {
+        if (amount > balance) {
+            cout << "Insufficient funds." << endl;
+            return false;
+        }
+        balance -= amount;
+        transactions.emplace_back("Withdrawal", amount, "Timestamp");
+        return true;
+    }
+    void transfer(Account& other, double amount) {
+        if (withdraw(amount)) {
+            other.deposit(amount);
+            transactions.emplace_back("Transfer", amount, "Timestamp");
+        }
+    }
+    void printTransactions(const string& pwd) const {
+        if (!verifyPassword(pwd)) {
+            cout << "Invalid password. Access denied." << endl;
+            return;
+        }
+        cout << "Transactions for account " << accountNumber << ":\n";
+        for (const auto& txn : transactions) {
+            cout << txn.timestamp << ": " << txn.type << " of $" << txn.amount << endl;
+        }
+        cout << "Remaining balance: $" << balance << endl;
+    }
+    double getBalance() const {
+        return balance;
+    }
+    const string& getAccountNumber() const {
+        return accountNumber;
+    }
+};
+class Bank {
+private:
+    vector<Account> accounts;
+public:
+    void createAccount(const string& accNum, const string& pwd) {
+        accounts.emplace_back(accNum, pwd);
+        cout << "Account " << accNum << " created successfully." << endl;
+    }
+    Account* findAccount(const string& accNum) {
+        for (auto& acc : accounts) {
+            if (acc.getAccountNumber() == accNum) {
+                return &acc;
+            }
+        }
+        cout << "Account not found." << endl;
+        return nullptr;
+    }
+};
+int main() {
+    Bank bank;
+    int choice;
+    string accNum;
+    string toAccNum;
+    string password;
+    while (true) {
+        cout << "1. Create Account\n2. Deposit\n3. Withdraw\n4. Transfer\n5. View Transactions\n6. Exit\n";
+        cout << "Choose an option: ";
+        cin >> choice;
+        switch (choice) {
+            case 1:
+                cout << "Enter account number: ";
+                cin >> accNum;
+                cout << "Set your password: ";
+                cin >> password;
+                bank.createAccount(accNum, password);
+                break;
+            case 2:
+                cout << "Enter account number: ";
+                cin >> accNum;
+                {
+                    Account* acc = bank.findAccount(accNum);
+                    if (acc) {
+                        double amount;
+                        cout << "Enter amount to deposit: ";
+                        cin >> amount;
+                        acc->deposit(amount);
+                    }
+                }
+                break;
+            case 3:
+                cout << "Enter account number: ";
+                cin >> accNum;
+                {
+                    Account* acc = bank.findAccount(accNum);
+                    if (acc) {
+                        double amount;
+                        cout << "Enter amount to withdraw: ";
+                        cin >> amount;
+                        acc->withdraw(amount);
+                    }
+                }
+                break;
+            case 4:
+                cout << "Enter your account number: ";
+                cin >> accNum;
+                {
+                    Account* acc = bank.findAccount(accNum);
+                    if (acc) {
+                        cout << "Enter recipient account number: ";
+                        cin >> toAccNum;
+                        Account* toAcc = bank.findAccount(toAccNum);
+                        if (toAcc) {
+                            double amount;
+                            cout << "Enter amount to transfer: ";
+                            cin >> amount;
+                            acc->transfer(*toAcc, amount);
+                        }
+                    }
+                }
+                break;
+            case 5:
+                cout << "Enter account number: ";
+                cin >> accNum;
+                {
+                    Account* acc = bank.findAccount(accNum);
+                    if (acc) {
+                        cout << "Enter your password for verification: ";
+                        cin >> password;
+                        acc->printTransactions(password);
+                    }
+                }
+                break;
+            case 6:
+                cout << "Exiting..." << endl;
+                return 0;
+            default:
+                cout << "Invalid option. Please try again." << endl;
+        }
+    }
+}
